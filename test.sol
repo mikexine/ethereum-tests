@@ -282,7 +282,7 @@ contract Bitlab1 is usingOraclize {
     
   function Bitlab1(uint8 setCoffePrice){
     oraclize_setProof(proofType_TLSNotary | proofStorage_IPFS);
-    update(0); // first check at contract creation
+    update(0); 
     coffePrice = setCoffePrice;
   }
     
