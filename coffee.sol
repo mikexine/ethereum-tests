@@ -28,12 +28,31 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+pragma solidity ^0.4.0;
+
+contract owned {
+    address public owner;
+
+    function owned() {
+        owner = msg.sender;
+    }
+
+    modifier onlyOwner {
+        if (msg.sender != owner) throw;
+        _;
+    }
+
+    function transferOwnership(address newOwner) onlyOwner {
+        owner = newOwner;
+    }
+}
+
 contract OraclizeI {
     address public cbAddress;
-    function query(uint _timestamp, string _datasource, string _arg) returns (bytes32 _id);
-    function query_withGasLimit(uint _timestamp, string _datasource, string _arg, uint _gaslimit) returns (bytes32 _id);
-    function query2(uint _timestamp, string _datasource, string _arg1, string _arg2) returns (bytes32 _id);
-    function query2_withGasLimit(uint _timestamp, string _datasource, string _arg1, string _arg2, uint _gaslimit) returns (bytes32 _id);
+    function query(uint _timestamp, string _datasource, string _arg) payable returns (bytes32 _id);
+    function query_withGasLimit(uint _timestamp, string _datasource, string _arg, uint _gaslimit) payable returns (bytes32 _id);
+    function query2(uint _timestamp, string _datasource, string _arg1, string _arg2) payable returns (bytes32 _id);
+    function query2_withGasLimit(uint _timestamp, string _datasource, string _arg1, string _arg2, uint _gaslimit) payable returns (bytes32 _id);
     function getPrice(string _datasource) returns (uint _dsprice);
     function getPrice(string _datasource, uint gaslimit) returns (uint _dsprice);
     function useCoupon(string _coupon);
@@ -43,7 +62,7 @@ contract OraclizeI {
 contract OraclizeAddrResolverI {
     function getAddress() returns (address _addr);
 }
-contract usingOraclize {
+contract usingOraclize is owned {
     uint constant day = 60*60*24;
     uint constant week = 60*60*24*7;
     uint constant month = 60*60*24*30;
@@ -62,12 +81,12 @@ contract usingOraclize {
     modifier oraclizeAPI {
         if(address(OAR)==0) oraclize_setNetwork(networkID_auto);
         oraclize = OraclizeI(OAR.getAddress());
-        _
-    }//please import oraclizeAPI_0.4.sol when solidity >= 0.4.0
+        _;
+    }
     modifier coupon(string code){
         oraclize = OraclizeI(OAR.getAddress());
         oraclize.useCoupon(code);
-        _
+        _;
     }
 
     function oraclize_setNetwork(uint8 networkID) internal returns(bool){
@@ -272,18 +291,38 @@ contract usingOraclize {
 }
 // </ORACLIZE_API>
 
-contract Coffee is usingOraclize {
-  string public BTCDKK;
+contract Bitlab1 is usingOraclize {
+  uint public DKKBTC;
+  uint8 public coffePrice;
+  uint256 btcAmount;
+  event ApiResult(uint DKKBTC);
+  event ChangeCoffePrice(uint8 Price);
+  event DisplayBtcAmount(uint256 BitcoinAmount);
+
     
-  function Coffee(){
-//
+  function Bitlab1(uint8 setCoffePrice){
+    oraclize_setProof(proofType_TLSNotary | proofStorage_IPFS);
+    update(0); 
+    coffePrice = setCoffePrice;
   }
 
-  
-  function update() constant returns (string) {
+  function changeCoffePrice(uint8 newPrice) onlyOwner {
+      coffePrice = newPrice;
+      ChangeCoffePrice(coffePrice);
+  }
+    
+  function __callback(bytes32 myid, string result, bytes proof) {
     if (msg.sender != oraclize_cbAddress()) throw;
-    BTCDKK = oraclize_query("URL","json(https://min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=DKK).DKK");
-    log0(BTCDKK);
-    return parseInt(BTCDKK, 2);
+    DKKBTC = parseInt(result, 2); // save it as $ cents
+    ApiResult(DKKBTC);
+    btcAmount = coffePrice / DKKBTC;
+    DisplayBtcAmount(btcAmount);
+    // do something with ETHUSD
+    //update(60); //recursive update disabled
+  }
+  
+  function update(uint delay){
+    oraclize_query(delay, "URL",
+      "json(https://min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=DKK).DKK");
   }
 }
