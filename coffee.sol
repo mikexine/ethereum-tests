@@ -292,21 +292,21 @@ contract usingOraclize is owned {
 // </ORACLIZE_API>
 
 contract Bitlab1 is usingOraclize {
-  uint public DKKBTC;
-  uint8 public coffePrice;
+  uint256 public DKKBTC;
+  uint256 public coffePrice;
   uint256 btcAmount;
-  event ApiResult(uint DKKBTC);
-  event ChangeCoffePrice(uint8 Price);
-  event DisplayBtcAmount(uint256 BitcoinAmount);
+  event ApiResult(uint256 DKKBTC);
+  event ChangeCoffePrice(uint256 Price);
+  event DisplaySatoshiAmount(uint256 BitcoinAmount);
 
     
-  function Bitlab1(uint8 setCoffePrice){
+  function Bitlab1(uint256 setCoffePrice){
     oraclize_setProof(proofType_TLSNotary | proofStorage_IPFS);
     update(0); 
     coffePrice = setCoffePrice;
   }
 
-  function changeCoffePrice(uint8 newPrice) onlyOwner {
+  function changeCoffePrice(uint256 newPrice) onlyOwner {
       coffePrice = newPrice;
       ChangeCoffePrice(coffePrice);
   }
@@ -315,13 +315,13 @@ contract Bitlab1 is usingOraclize {
     if (msg.sender != oraclize_cbAddress()) throw;
     DKKBTC = parseInt(result, 2); // save it as $ cents
     ApiResult(DKKBTC);
-    btcAmount = coffePrice / DKKBTC;
-    DisplayBtcAmount(btcAmount);
+    btcAmount = coffePrice * 10000000000 / DKKBTC;
+    DisplaySatoshiAmount(btcAmount);
     // do something with ETHUSD
     //update(60); //recursive update disabled
   }
   
-  function update(uint delay){
+  function update(uint256 delay){
     oraclize_query(delay, "URL",
       "json(https://min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=DKK).DKK");
   }
